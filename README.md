@@ -149,9 +149,14 @@ The extension provides a comprehensive note-taking solution within Burp Suite, s
 ## **Why Use This Extension?**  
 - **Organized Notes**: Tabbed interface keeps findings separate.  
 - **Faster Reporting**: Templates reduce manual formatting.  
-- **Burp Integration**: Directly log requests/responses.  
+- **Burp Integration**: Directly log requests/responses.
+
+
 
 **Installation**: Load the `.py` file via Burp's Extender tab.  
+
+- Demo the Extension on YouTube
+- https://www.youtube.com/watch?v=n2G91wwfOiQ
 
 --- 
 
