@@ -40,51 +40,102 @@ The **Notes Editor** is a **Burp Suite extension** designed to enhance note-taki
 
 ---
 
-## **Code Structure**  
 
-### **1. Core Class: `BurpExtender`**  
-Implements Burp's `IBurpExtender`, `ITab`, and `IContextMenuFactory`.  
+# Burp Suite Notes Editor Extension - Source Code Documentation
 
-#### **Key Methods**:  
-- **`registerExtenderCallbacks()`**: Initializes UI and buttons.  
-- **`getUiComponent()`**: Returns the main panel to Burp.  
-- **`createMenuItems()`**: Adds right-click options to send HTTP data to notes.  
+## Overview
+This Burp Suite extension provides a rich text editor with multiple tabs, formatting options, and integration with Burp's HTTP traffic. It allows pentesters to take notes, format reports, and save their work.
 
-### **2. UI Components**  
+## Class Structure
 
-#### **`create_new_editor_tab()`**  
-- Creates a tab with:  
-  - Line numbers (`LineNumberView`)  
-  - Close button (if not main tab)  
-  - Document modification tracking  
+### 1. LineNumberView Class
+A custom component that displays line numbers for a text editor.
 
-#### **`close_tab()` / `close_current_tab()`**  
-- Prevents closing the main tab.  
-- Confirms before closing unsaved changes.  
+#### Methods:
+- `__init__(self, editor)`: Initializes the line number view
+  - Sets up fonts, colors, and dimensions
+  - Adds a caret listener to track cursor movement
+- `paintComponent(self, g)`: Renders the line numbers
+  - Calculates visible lines and draws corresponding numbers
+  - Handles scrolling and partial line visibility
+- `removeNotify(self)`: Cleanup method to remove listeners
 
-#### **`show_format_dialog()`**  
-- Opens header/footer formatting tabs.  
+#### Inner Class:
+- `LineNumberCaretListener`: Listens for caret movements to update line numbers
 
-### **3. Document Management**  
+### 2. BurpExtender Class
+Main extension class implementing IBurpExtender, ITab, and IContextMenuFactory interfaces.
 
-#### **`save_to_file()`**  
-- Saves notes as `.txt`.  
-- Updates `modified` flag after save.  
+#### Core Methods:
+- `registerExtenderCallbacks(self, callbacks)`: Entry point for Burp
+  - Sets up UI components
+  - Initializes editor tabs and buttons
+  - Registers context menu handlers
 
-#### **`import_notes()`**  
-- Loads `.txt` files into the editor.  
+#### UI Creation Methods:
+- `create_header_panel(self, parent_dialog)`: Builds header configuration panel
+- `create_footer_panel(self, parent_dialog)`: Builds footer configuration panel
+- `create_methodology_combo(self)`: Creates methodology dropdown
+- `create_styled_button(self, text, color)`: Helper for consistent button styling
+- `create_new_editor_tab(self, title)`: Creates a new editor tab
+- `create_hover_listener(self, button)`: Creates mouse hover effects for buttons
 
-#### **`duplicate_main_tab()`**  
-- Copies content to a new tab.  
+#### Document Formatting Methods:
+- `insert_formatted_header(self, dialog)`: Inserts formatted header into editor
+- `insert_formatted_footer(self, dialog)`: Inserts formatted footer into editor
+- `show_format_dialog(self, event)`: Shows header/footer formatting dialog
+- `update_header_preview(self)`: Updates live header preview
+- `update_footer_preview(self)`: Updates live footer preview
 
-### **4. Helper Classes**  
+#### Tab Management Methods:
+- `close_tab(self, title)`: Closes a specific tab
+- `close_current_tab(self)`: Closes currently selected tab
+- `duplicate_main_tab(self)`: Duplicates the main tab content
+- `get_current_editor_data(self)`: Gets data for current editor
 
-#### **`LineNumberView`**  
-- Displays line numbers in editor gutter.  
-- Syncs with scrolling/editing.  
+#### Symbol Insertion Methods:
+- `show_multiple_symbols_panel(self, event)`: Shows symbol palette
+- `show_multiple_symbols_fallback(self, event)`: Fallback for symbol display
+- `insert_symbol(self, symbol)`: Inserts symbol at cursor position
+- `_initialize_symbols_window(self)`: Initializes symbols window
+- `_try_display_unicode_symbols(self)`: Attempts to show Unicode symbols
+- `_show_text_symbols_fallback(self)`: Shows text fallback for symbols
 
-#### **`DocumentChangeListener`**  
-- Tracks unsaved changes.  
+#### File Operations Methods:
+- `save_to_file(self, event)`: Saves current tab to file
+- `import_notes(self, event)`: Imports notes from file
+- `clear_current_tab(self, event)`: Clears current tab content
+
+#### Context Menu Methods:
+- `createMenuItems(self, context_menu_info)`: Creates context menu items
+- `send_request_response(self, message, ...)`: Sends HTTP traffic to editor
+- `append_to_editor(self, note)`: Appends text to main editor
+
+#### Helper Methods:
+- `get_field_value(self, field_name)`: Gets value from form field
+- `highlight_selected_text(self, event)`: Highlights selected text in blue
+
+## Key Features
+
+1. **Multi-tab Editor**: Supports multiple documents with tabbed interface
+2. **Rich Text Formatting**: Includes headers, footers, and text highlighting
+3. **Symbol Palette**: Easy insertion of special characters
+4. **Burp Integration**: Adds context menu items for HTTP traffic
+5. **Line Numbers**: Visual reference for large documents
+6. **File Operations**: Save/load functionality with text files
+7. **Report Templates**: Pre-formatted headers and footers for reports
+
+## Technical Details
+
+- Uses Java Swing components via Jython
+- Implements custom UI components like LineNumberView
+- Maintains state for each editor tab (modified status, file path)
+- Handles both Unicode symbols and text fallbacks
+- Integrates with Burp's HTTP message processing
+
+The extension provides a comprehensive note-taking solution within Burp Suite, specifically designed for penetration testers to document their findings and generate reports.
+
+
 
 ---
 
