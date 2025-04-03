@@ -10,17 +10,21 @@ from javax.swing.filechooser import FileNameExtensionFilter
 from javax.swing.border import TitledBorder, CompoundBorder, EmptyBorder, LineBorder
 from javax.swing.event import DocumentListener, CaretListener
 from java.awt import BorderLayout, Color, GridLayout, Insets, Font, FlowLayout, Dimension, Point
-from java.io import BufferedWriter, FileWriter, File
+from java.io import (
+    BufferedWriter, FileWriter, File,
+    OutputStreamWriter, FileOutputStream,
+    BufferedReader, InputStreamReader, FileInputStream
+)
 from java.util import HashMap
 from java.lang import System
 from java.text import SimpleDateFormat
 from java.util import Date
 import os
 import datetime
-from java.awt.event import ActionListener, ActionEvent
+from java.awt.event import ActionListener, ActionEvent, MouseAdapter
 from javax.swing.event import DocumentListener
-from java.awt.event import MouseAdapter
-from javax.swing import BorderFactory
+from javax.swing import BorderFactory, KeyStroke
+from java.awt.event import KeyEvent
 class LineNumberView(JComponent):
         def __init__(self, editor):
             super(LineNumberView, self).__init__()
@@ -87,34 +91,79 @@ class BurpExtender(IBurpExtender, ITab, IContextMenuFactory):
         
         self.main_tab_title = "Main"
         self.create_new_editor_tab(self.main_tab_title)
-        
-        buttons_panel = JPanel()
-        
-        buttons = [
-            (u"\u2699", self.show_format_dialog, "Format document", True),
-            (u"\U0001F4BE", self.save_to_file, "Save notes", True),
-            (u"\U0001F5D1", self.clear_current_tab, "Clear notes", True),
-            ("Highlight", self.highlight_selected_text, "Highlight Selected (Blue)", False),
-            ("Import", self.import_notes, "Import notes from file", False),
-            ("New Document", lambda e: self.duplicate_main_tab(), "New Document", False),
-            ("Symbols", self.show_multiple_symbols_panel, "Insert special characters", False),
-            ("Close Tab", lambda e: self.close_current_tab(), "Close current tab", False)
+        bottom_panel = JPanel(BorderLayout())
+        bottom_panel.setBorder(BorderFactory.createEmptyBorder(5, 40, 5, 5))  
+        button_groups_panel = JPanel(BorderLayout())
+        icon_panel = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
+        icon_panel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 20))  
+        text_panel = JPanel(FlowLayout(FlowLayout.LEFT, 5, 0))
+        icon_buttons = [
+            (u"\u2699", self.show_format_dialog, "Format document"),     
+            (u"\U0001F4BE", self.save_to_file, "Save notes"),             
+            (u"\U0001F5D1", self.clear_current_tab, "Clear notes"),       
+            (u"\U0001F50D", self.zoom_in, "Zoom In (Ctrl++)"),            
+            (u"\U0001F50E", self.zoom_out, "Zoom Out (Ctrl+-)"),         
+            (u"\u21BB", self.zoom_reset, "Reset Zoom")                    
         ]
         
-        for (display, action, tooltip, use_icon) in buttons:
+        text_buttons = [
+            ("Highlight", self.highlight_selected_text, "Highlight Selected (Blue)"),
+            ("Import", self.import_notes, "Import notes from file"),
+            ("New Document", lambda e: self.duplicate_main_tab(), "New Document"),
+            ("Symbols", self.show_multiple_symbols_panel, "Insert special characters"),
+            ("Bullets", self.add_bullet_points, "Add bullet points"),
+            ("Numbers", self.add_numbering, "Add numbered list"),
+            ("Close Tab", lambda e: self.close_current_tab(), "Close current tab")
+        ]
+        
+  
+        for (display, action, tooltip) in icon_buttons:
             btn = JButton(display)
             btn.setToolTipText(tooltip)
-            if use_icon:
-                btn.setText(display)
-                btn.setFont(Font("Dialog", Font.PLAIN, 20))
-            else:
-                btn.setText(display)
+            btn.setFont(Font("Segoe UI Emoji", Font.PLAIN, 16))
+            btn.setBorderPainted(False)
+            btn.setContentAreaFilled(False)
+            btn.setFocusPainted(False)
+            btn.setPreferredSize(Dimension(40, 30))
+            
+            class HoverListener(MouseAdapter):
+                def __init__(self, button):
+                    self.button = button
+                    self.original_bg = button.getBackground()
+                    
+                def mouseEntered(self, e):
+                    self.button.setContentAreaFilled(True)
+                    self.button.setBackground(Color(240, 240, 240))
+                    
+                def mouseExited(self, e):
+                    self.button.setContentAreaFilled(False)
+                    self.button.setBackground(self.original_bg)
+            
+            btn.addMouseListener(HoverListener(btn))
             btn.addActionListener(action)
-            buttons_panel.add(btn)
+            icon_panel.add(btn)
         
+        for (text, action, tooltip) in text_buttons:
+            btn = JButton(text)
+            btn.setToolTipText(tooltip)
+            btn.setFont(Font("Dialog", Font.PLAIN, 12))
+            btn.setBorderPainted(False)
+            btn.setContentAreaFilled(False)
+            btn.setFocusPainted(False)
+            btn.setMargin(Insets(2, 8, 2, 8))
+            
+            metrics = btn.getFontMetrics(btn.getFont())
+            btn.setPreferredSize(Dimension(metrics.stringWidth(text) + 20, 30))
+            btn.addMouseListener(HoverListener(btn))
+            btn.addActionListener(action)
+            text_panel.add(btn)
+        
+        button_groups_panel.add(icon_panel, BorderLayout.WEST)
+        button_groups_panel.add(text_panel, BorderLayout.CENTER)
+        bottom_panel.add(button_groups_panel, BorderLayout.CENTER)
         main_panel = JPanel(BorderLayout())
         main_panel.add(self.tabbed_pane, BorderLayout.CENTER)
-        main_panel.add(buttons_panel, BorderLayout.SOUTH)
+        main_panel.add(bottom_panel, BorderLayout.SOUTH)
         
         self._panel = main_panel
         callbacks.addSuiteTab(self)
@@ -749,12 +798,30 @@ class BurpExtender(IBurpExtender, ITab, IContextMenuFactory):
                 
                 editor = editor_data['text_pane']
                 file_path = chooser.getSelectedFile().getPath()
-                with open(file_path, 'r') as f:
-                    content = f.read()
                 
+                
+                reader = BufferedReader(InputStreamReader(
+                    FileInputStream(file_path), "UTF-8"))
+                content = []
+                try:
+                    while True:
+                        line = reader.readLine()
+                        if line is None:
+                            break
+                        content.append(line)
+                finally:
+                    reader.close()
+    
+                content = "\n".join(content)
+                
+                editor.setFont(Font("Segoe UI Symbol, Arial Unicode MS, DejaVu Sans", Font.PLAIN, 14))
+                
+        
                 doc = editor.getDocument()
                 doc.remove(0, doc.getLength())
                 doc.insertString(0, content, None)
+                
+               
                 editor_data['modified'] = False
                 editor_data['file_path'] = file_path
                 
@@ -766,10 +833,11 @@ class BurpExtender(IBurpExtender, ITab, IContextMenuFactory):
             except Exception as e:
                 self._callbacks.printError("Import error: " + str(e))
                 JOptionPane.showMessageDialog(self._panel,
-                                            "Import error: %s" % str(e),
+                                            "Failed to import file:\n%s\n\n"
+                                            "Please ensure the file is a valid text file "
+                                            "and not corrupted." % str(e),
                                             "Import Error",
                                             JOptionPane.ERROR_MESSAGE)
-
     def duplicate_main_tab(self):
         main_editor_data = self.editor_data_map.get(self.main_tab_title)
         if not main_editor_data:
@@ -1002,7 +1070,7 @@ class BurpExtender(IBurpExtender, ITab, IContextMenuFactory):
             
             if not text.strip():
                 JOptionPane.showMessageDialog(self._panel,
-                                            "No content to Save!",
+                                            "No content to save!",
                                             "Save Error",
                                             JOptionPane.WARNING_MESSAGE)
                 return
@@ -1017,28 +1085,96 @@ class BurpExtender(IBurpExtender, ITab, IContextMenuFactory):
                 if not file_path.lower().endswith('.txt'):
                     file_path += '.txt'
                 
-                writer = None
                 try:
-                    writer = BufferedWriter(FileWriter(File(file_path)))
-                    writer.write(text)
-                    writer.flush()
-                    editor_data['modified'] = False
-                    editor_data['file_path'] = file_path
-                    JOptionPane.showMessageDialog(self._panel,
-                                                "Successfully saved to:\n%s" % file_path,
-                                                "Save Complete",
-                                                JOptionPane.INFORMATION_MESSAGE)
-                finally:
-                    if writer:
+                    
+                    writer = BufferedWriter(OutputStreamWriter(
+                        FileOutputStream(file_path), "UTF-8"))
+                    try:
+                        writer.write(text)
+                        writer.flush()
+                    finally:
                         writer.close()
-                        
+                except:
+                    try:
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(text)
+                    except Exception as inner_e:
+                        raise Exception("Failed both Java and Python write methods: " + str(inner_e))
+                
+                editor_data['modified'] = False
+                editor_data['file_path'] = file_path
+                
+                JOptionPane.showMessageDialog(self._panel,
+                                            "Successfully saved to:\n%s" % file_path,
+                                            "Save Complete",
+                                            JOptionPane.INFORMATION_MESSAGE)
+                
         except Exception as e:
-            self._callbacks.printError("Error in save_to_file: %s" % str(e))
+            self._callbacks.printError("Error saving file: " + str(e))
             JOptionPane.showMessageDialog(self._panel,
-                                        "Error saving file: %s" % str(e),
+                                        "Error saving file:\n%s" % str(e),
                                         "Save Error",
                                         JOptionPane.ERROR_MESSAGE)
 
+    def add_bullet_points(self, event):
+        """Add bullet points to selected text or at cursor position"""
+        try:
+            editor_data = self.get_current_editor_data()
+            if not editor_data:
+                return
+                
+            editor = editor_data['text_pane']
+            doc = editor.getDocument()
+            start = editor.getSelectionStart()
+            end = editor.getSelectionEnd()
+            
+            
+            bullet = u"\u2022 "
+            
+            if start == end:  
+                doc.insertString(start, bullet, None)
+            else:  
+                text = doc.getText(start, end - start)
+                lines = text.split("\n")
+                bulleted_text = "\n".join([bullet + line if line.strip() else line for line in lines])
+                
+                doc.remove(start, end - start)
+                doc.insertString(start, bulleted_text, None)
+                
+        except Exception, e:
+            self._callbacks.printError("Error adding bullets: " + str(e))
+    def add_numbering(self, event):
+        try:
+            editor_data = self.get_current_editor_data()
+            if not editor_data:
+                return
+                
+            editor = editor_data['text_pane']
+            doc = editor.getDocument()
+            start = editor.getSelectionStart()
+            end = editor.getSelectionEnd()
+            
+            if start == end:  
+                doc.insertString(start, "1. ", None)
+            else:  
+                text = doc.getText(start, end - start)
+                lines = text.split("\n")
+                numbered_lines = []
+                counter = 1
+                
+                for line in lines:
+                    if line.strip():  
+                        numbered_lines.append(str(counter) + ". " + line)
+                        counter += 1
+                    else:
+                        numbered_lines.append(line)
+                        
+                numbered_text = "\n".join(numbered_lines)
+                doc.remove(start, end - start)
+                doc.insertString(start, numbered_text, None)
+                
+        except Exception, e:  
+            self._callbacks.printError("Error adding numbering: " + str(e))
     def highlight_selected_text(self, event):
         editor_data = self.get_current_editor_data()
         if not editor_data:
@@ -1056,3 +1192,52 @@ class BurpExtender(IBurpExtender, ITab, IContextMenuFactory):
             doc.setCharacterAttributes(start, end - start, style, False)
         else:
             System.out.println("No text selected for highlighting")
+            
+    def zoom_in(self, event):
+        """Increase the font size"""
+        try:
+            editor_data = self.get_current_editor_data()
+            if editor_data:
+                editor = editor_data['text_pane']
+                current_font = editor.getFont()
+                new_size = current_font.getSize() + 1
+                editor.setFont(Font(current_font.getName(), current_font.getStyle(), new_size))
+        except Exception, e:
+            self._callbacks.printError("Error zooming in: " + str(e))
+
+    def zoom_out(self, event):
+        """Decrease the font size"""
+        try:
+            editor_data = self.get_current_editor_data()
+            if editor_data:
+                editor = editor_data['text_pane']
+                current_font = editor.getFont()
+                new_size = max(8, current_font.getSize() - 1)  
+                editor.setFont(Font(current_font.getName(), current_font.getStyle(), new_size))
+        except Exception, e:
+            self._callbacks.printError("Error zooming out: " + str(e))
+
+    def zoom_reset(self, event):
+        """Reset zoom to default size"""
+        try:
+            editor_data = self.get_current_editor_data()
+            if editor_data:
+                editor = editor_data['text_pane']
+                current_font = editor.getFont()
+                editor.setFont(Font(current_font.getName(), current_font.getStyle(), 14))  # Default size 14
+        except Exception, e:
+            self._callbacks.printError("Error resetting zoom: " + str(e))
+            
+    class HoverListener(MouseAdapter):
+        """Creates hover effects for borderless buttons"""
+        def __init__(self, button):
+            self.button = button
+            self.original_bg = button.getBackground()
+            
+        def mouseEntered(self, e):
+            self.button.setContentAreaFilled(True)
+            self.button.setBackground(Color(240, 240, 240))  
+            
+        def mouseExited(self, e):
+            self.button.setContentAreaFilled(False)
+            self.button.setBackground(self.original_bg)
