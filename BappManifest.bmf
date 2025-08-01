@@ -1,0 +1,13 @@
+Uuid: 8819894074d5442a90a8aa9d7821dbc6
+ExtensionType: 2
+Name: Notes Editor
+RepoName: notes-editor
+ScreenVersion: 1.0.0
+SerialVersion: 1
+MinPlatformVersion: 0
+ProOnly: False
+Author: enochgitgamefied
+ShortDescription: Enhances note-taking and report generation during security testing through a rich text editor with tabbed documents, syntax highlighting, and built-in formatting tools.
+EntryPoint: notes.py
+BuildCommand: 
+SupportedProducts: Pro, Community

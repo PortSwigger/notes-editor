@@ -1,0 +1,41 @@
+<p>The Notes Editor is a Burp Suite extension designed to enhance note-taking and report generation during security testing. The tool provides a rich text editor with tabbed documents, enabling easy navigation between notes. It comes with syntax highlighting to make writing and reviewing notes easier and more efficient. In addition, the extension also features built-in formatting tools tailored for penetration testers.</p>
+
+<h2>Features</h2>
+<ul>
+<li>Tabbed interface for multiple notes</li>
+<li>Line numbers styled like VS Code</li>
+<li>Header/Footer templates available for reports</li>
+<li>Quick insertion of special symbols such as ?, -&gt;, and ?</li>
+<li>Notes can be saved/imported in .txt format</li>
+<li>Logging HTTP request/response straight from Burp</li>
+</ul>
+
+<h2>Usage</h2>
+<p>The extensions interface is divided into three core components:</p>
+
+<h3>Tabbed Editor</h3>
+<ul>
+<li>Main Tab: always open and cannot be closed</li>
+<li>Additional Tabs: also open but can be closed. A red X button appears on mouse hover.</li>
+<li>Line Numbers: presented in a grey sidebar on the right side.</li>
+</ul>
+
+<h3>Button Panel</h3>
+<ul>
+<li>Format headers/footers</li>
+<li>Save notes to a file</li>
+<li>Clear the current tab</li>
+<li>Highlight selected text</li>
+<li>Load notes from a file</li>
+<li>Duplicate the current tab</li>
+<li>Insert special characters</li>
+<li>Close the current tab (apart from the main tab).</li>
+</ul>
+
+<h3>Formatting Dialogs</h3>
+<ul>
+<li>Header/Footer Templates: Pre-formatted sections for report generation.</li>
+<li>Symbol Palette: For quick insertion of Unicode symbols.</li>
+</ul>
+
+<p>The extension is written in Python (Jython 2.7) for maximum compatibility with Burp Suite, and it has the ability to log HTTP requests and responses from Burp directly into the notes. Commands for manipulating tabs, inserting special symbols, saving/reading to/from file, formatting documents and even sending HTTP requests/responses to the editor are all implemented for efficient note-taking and report generation.</p>
